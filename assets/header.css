@@ -1,0 +1,27 @@
+.app-header {
+    height: 160px;
+    line-height: 60px;
+    border-bottom: thin lightgrey solid;
+    background-color: green;
+  	background-image: url("blockchain_featured.jpeg");
+  	background-size: auto;
+  	vertical-align: middle;
+}
+
+.app-header--title {
+	color:white;
+    font-size: 23px;
+    padding-left: 5px;
+    vertical-align: middle;
+}
+
+.footer {
+   position: fixed;
+   left: 0;
+   bottom: 0;
+   width: 100%;
+   background-color: grey;
+   color: white;
+   display: table;
+   text-align: center;
+}
