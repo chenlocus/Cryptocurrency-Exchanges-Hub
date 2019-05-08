@@ -1,7 +1,11 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[ ]:
+
+
+
+# coding: utf-8
 
 
 import dash
@@ -13,16 +17,23 @@ import pandas as pd
 import os
 import requests
 from gevent.pywsgi import WSGIServer
-import exchanges.binance as binance
-import exchanges.bitfinex as bitfinex
-import exchanges.BTCMarkets as BTCMarkets
-import exchanges.independentreserve as independentreserve
-import exchanges.OKEx as OKEx
+import exchanges
 import historicaldata as hisdata
 from multiprocessing.pool import ThreadPool
+import pkgutil
 
+exchange_list = []
+prefix = exchanges.__name__ + "."
+for importer, modname, ispkg in pkgutil.iter_modules(exchanges.__path__,prefix):
+    print ("Found submodule %s (is a package: %s)"% (modname, ispkg))
+    module = __import__(modname, fromlist="exchanges")
+    exchange_list.append(module)
+    
 
-symbols = ['BTC','ETH','EOS','XRP']
+symbols = {'BTC':'Bitcoin','ETH':'Ethereum','BCH':'Bitcoin Cash','LTC':'Litecoin',
+           'EOS':'EOS','XRP':'Ripple','STEEM':'Steem','BSV':'Bitcoin SV','TRX':'TRON',
+           'ADA':'Cardano','MIOTA':'IOTA','XMR':'Monero','BNB':'Binance Coin',
+           'DASH':'Dash','XEM':'NEM','ETC':'Ethereum Classic','NEO':'NEO','WAVES':'Waves','ZEC':'Zcash'}
 
 tabs_styles = {
     'height': '44px'
@@ -44,20 +55,23 @@ tab_selected_style = {
 def getRealtimeData(symbol):
     results = []
     pool = ThreadPool()
-    results.append(pool.apply_async(binance.getUSDPrice, args = (symbol,)))
-    results.append(pool.apply_async(bitfinex.getUSDPrice, args = (symbol,)))
-    results.append(pool.apply_async(BTCMarkets.getUSDPrice, args = (symbol,)))
-    results.append(pool.apply_async(independentreserve.getUSDPrice, args = (symbol,)))
-    results.append(pool.apply_async(OKEx.getUSDPrice, args = (symbol,)))
+    for exchange in exchange_list:
+        print(exchange)
+        results.append(pool.apply_async(exchange.getUSDPrice, args = (symbol,)))
 
-    price_list = [r.get() for r in results if r.get() is not None]
+    price_list = [r.get() for r in results if r is not None and r.get() is not None]
     pool.close()
     pool.join()
 
+    if not price_list:
+        return None
+    
     df = pd.DataFrame(price_list)
+    print(df)
     df = df[['source','bid','ask','trade']]
     df.columns=['Exchange','BestBid','BestAsk','Last Trade Price']
     return df
+
     
 def getHistoricalData(symbol,interval):
     data_list = hisdata.getHistoricalData(symbol,interval)
@@ -78,24 +92,27 @@ def generate_table(dataframe, max_rows=10):
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.title = 'Crypto Exchange Price Compare'
-my_js_url = 'http://13.237.159.224/static/adsense.js'
+app.title = 'Cryptocurrency Exchanges Depth'
 
 app.layout = html.Div(
 [  
+
+        html.Div(
+        className="app-header",
+        children=[
+            html.Div('Cryptocurrency Exchanges Depth', className="app-header--title")
+        ]
+        ),
+
         html.Div(
         [
                 html.Label('Symbol'),
                 dcc.Dropdown(
                     id='symbol',
                     options=[
-                        {'label': symbol, 'value': symbol} for symbol in symbols
+                        {'label': symbol+' '+name, 'value': symbol} for symbol,name in symbols.items()
                     ],value='BTC')
         ],style={'width': '20%', 'display': 'inline-block'}),
-    
-        app.scripts.append_script({
-            "external_url": my_js_url
-        }),
         
         html.Div(
         [
@@ -115,7 +132,22 @@ app.layout = html.Div(
                     id='interval-component',
                     interval=10*1000, # in milliseconds
                     n_intervals=0
-                )
+                ),
+        html.Div (  
+               className="footer",
+               children=[
+                html.Div([
+                    html.P('Biglion.com.au'),
+                    html.P('2018 copyright'),
+                ], style={'width': '49%', 'display': 'table-cell','vertical-align': 'middle'}),
+                html.Div([
+                    html.P('Donation'),
+                    html.P('XBT： 3NCc5DXMBzSnaZgc97E6MKtwUf52HgFArK        '),
+                    html.P('ETH： 0x0058501228fa553aa1aba12baf9f7c46b3822fef'),
+                    html.P('LTC： MGDVgCeMRFWkDYyAki3Mm3WX4Pdp7D3kbe        ')
+                ], style= {'width': '49%', 'display': 'table-cell'})
+               ]
+        ),
 ]
 
 )
@@ -128,21 +160,27 @@ def table_update(selected_dropdown_value,n):
 @app.callback(Output('trend-chart', 'figure'),
               [Input('tabs-history', 'value'),Input('symbol', 'value')])
 def graph_update(tab,selected_dropdown_value):
+    df = None
     if tab == 'tab-24-hours':
         df = getHistoricalData(selected_dropdown_value,'day')
     elif tab == 'tab-1-month':
         df = getHistoricalData(selected_dropdown_value,'month')
     elif tab == 'tab-1-year':
         df = getHistoricalData(selected_dropdown_value,'year')
-    return {'data': [go.Scatter(x=df['time'],
+    if df is not None:
+        return {'data': [go.Scatter(x=df['time'],
                                     y=df['close'],
                                     mode='lines+markers')
                             ]
                 }
+    else:
+        return
     
 
 if __name__ == '__main__':
     http_server = WSGIServer(('', 5000), app)
     http_server.serve_forever()
-    
+
+
+
 
