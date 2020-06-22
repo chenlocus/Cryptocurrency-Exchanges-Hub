@@ -14,6 +14,8 @@ def getHistoricalData(symbol,interval):
         url = "https://min-api.cryptocompare.com/data/histohour?fsym=%s&tsym=USD&limit=24"%symbol
     elif interval =='month':
         url = "https://min-api.cryptocompare.com/data/histoday?fsym=%s&tsym=USD&limit=30"%symbol
+    elif interval =='3 months':
+        url = "https://min-api.cryptocompare.com/data/histoday?fsym=%s&tsym=USD&limit=90"%symbol
     elif interval == 'year':
         url = "https://min-api.cryptocompare.com/data/histoday?fsym=%s&tsym=USD&limit=365"%symbol
     response = requests.get(url)

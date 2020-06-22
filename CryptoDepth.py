@@ -31,7 +31,7 @@ for importer, modname, ispkg in pkgutil.iter_modules(exchanges.__path__,prefix):
     
 
 symbols = {'BTC':'Bitcoin','ETH':'Ethereum','BCH':'Bitcoin Cash','LTC':'Litecoin',
-           'EOS':'EOS','XRP':'Ripple','STEEM':'Steem','BSV':'Bitcoin SV','TRX':'TRON',
+           'EOS':'EOS','XRP':'Ripple','STEEM':'Steem','HIVE':'Hive','BSV':'Bitcoin SV','TRX':'TRON',
            'ADA':'Cardano','MIOTA':'IOTA','XMR':'Monero','BNB':'Binance Coin',
            'DASH':'Dash','XEM':'NEM','ETC':'Ethereum Classic','NEO':'NEO','WAVES':'Waves','ZEC':'Zcash'}
 
@@ -122,6 +122,7 @@ app.layout = html.Div(
                     dcc.Tabs(id="tabs-history", value='tab-history', children=[
                     dcc.Tab(label='24 hours trend', value='tab-24-hours',style=tab_style, selected_style=tab_selected_style),
                     dcc.Tab(label='1 month trend', value='tab-1-month',style=tab_style, selected_style=tab_selected_style),
+                    dcc.Tab(label='3 month trend', value='tab-3-month',style=tab_style, selected_style=tab_selected_style),
                     dcc.Tab(label='1 year trend', value='tab-1-year',style=tab_style, selected_style=tab_selected_style),
                     ],style=tabs_styles),
                     dcc.Graph(id='trend-chart')
@@ -137,7 +138,7 @@ app.layout = html.Div(
                className="footer",
                children=[
                 html.Div([
-                    html.P('Biglion.com.au'),
+                    html.P('engineerman.club'),
                     html.P('2018 copyright'),
                 ], style={'width': '49%', 'display': 'table-cell','vertical-align': 'middle'}),
                 html.Div([
@@ -165,16 +166,17 @@ def graph_update(tab,selected_dropdown_value):
         df = getHistoricalData(selected_dropdown_value,'day')
     elif tab == 'tab-1-month':
         df = getHistoricalData(selected_dropdown_value,'month')
+    elif tab == 'tab-3-month':
+        df = getHistoricalData(selected_dropdown_value,'3 months')
     elif tab == 'tab-1-year':
         df = getHistoricalData(selected_dropdown_value,'year')
-    if df is not None:
-        return {'data': [go.Scatter(x=df['time'],
+    #if df is not None:
+    print("begin to draw")
+    return {'data': [go.Scatter(x=df['time'],
                                     y=df['close'],
                                     mode='lines+markers')
                             ]
                 }
-    else:
-        return
     
 
 if __name__ == '__main__':
